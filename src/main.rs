@@ -1,7 +1,7 @@
 use csv::Reader;
 use std::io;
 
-fn minkowski_distance(x: &[f32], y: &[f32], p: u32) -> f32 {
+fn minkowski_distance(x: Vec<f32>, y: Vec<Vec<f32>>, p: u32) -> f32 {
     assert_eq!(x.len(), y.len(), "Vectors must have the same length");
 
     let mut sum = 0.0;
@@ -14,19 +14,29 @@ fn minkowski_distance(x: &[f32], y: &[f32], p: u32) -> f32 {
 }
 
 
+
 fn space_last_point(X:Vec<f32>, y:Vec<Vec<f32>> ,k: u32){
     let len = X.len();
     let last_point = &y[len-1];
-    let space_1 = 
-    for i in range (0, len - 2) {
+    let mut total_sum = 0.0;
+    for sub_vec in &y {
+        for elem in sub_vec {
+            total_sum += *elem;
+        }
+    }
+    for sub_vec in &x {
+        for elem in sub_vec {
+            total_sum += *elem;
+        }
+    }
+    for i in range (0, k){
+        minkowski_distance();
+    }
+    for i in range (k, len - 2) {
 
     }
 }
-// fn get_values(){
 
-// }
-// fn read_csv(file_name: &str) -> Vec<Vec<String>> {
-// }
 fn main(){
     let file_name =  "D:/RUST/Rust_model/KNN/k-neigbor/src/fake_data.csv";
     let reader = Reader::from_path(file_name);
