@@ -1,67 +1,64 @@
-use csv::Reader;
-use std::io;
+use std::fs::File;
+use std::error::Error;
+use std::io::{self, BufRead};
 
-fn minkowski_distance(x: &Vec<f32>, y: &Vec<f32>, p: u32) -> f32 {
-    assert_eq!(x.len(), y.len(), "Vectors must have the same length");
+pub mod Knn;
+use crate::Knn::*;
 
-    let mut sum = 0.0;
+fn read_csv(file_name: &str) -> Result<Vec<Vec<f32>>, Box<dyn Error>> {
+    let file = File::open(file_name)?;
+    let reader = io::BufReader::new(file);
+    
+    let mut X: Vec<Vec<f32>> = Vec::new();
+    let mut y: Vec<f32> = Vec::new();
+    let mut first_line_skipped = false;
+    for line in reader.lines() {
+        let record = line?;
+        // Bỏ qua dòng đầu tiên trong file CSV
+        if !first_line_skipped {
+            first_line_skipped = true;
+            continue;
+        }
+        // Tách các phần từ trong dòng thành mảng
+        let parts: Vec<&str> = record.split(',').collect();
 
-    for (xi, yi) in x.iter().zip(y.iter()) {
-        sum += f32::powf(xi.abs_sub(*yi), p as f32);
+        // Chuyển đổi các phần từ sang dạng số thực
+        let mut x_values: Vec<f32> = Vec::new();
+        for part in &parts[..(parts.len() - 1)] {
+            let value: f32 = part.parse().expect("Failed to parse number");
+            x_values.push(value);
+            
+        }
+        let y_value: f32 = parts[parts.len() - 1].parse().expect("Failed to parse number");
+
+        // Thêm dữ liệu X và y vào các vector tương ứng
+        X.push(x_values);
+        y.push(y_value);
     }
 
-    f32::powf(sum, 1.0 / (p as f32))
+    // Thêm vector y vào cuối vector X để tạo thành một vector duy nhất chứa toàn bộ dữ liệu
+    X.push(y);
+    
+    // Trả về vector chứa dữ liệu đã đọc được từ file CSV
+    Ok(X)
 }
 
-fn space_last_point(X: &Vec<f32>, y: &Vec<Vec<f32>>, k: usize) {
-    let vec_for_first_k_X: Vec<f32> = X.iter().take(k).cloned().collect();
-    let vec_for_first_k_y: Vec<&Vec<f32>> = y.iter().take(k).collect();
-    let mut vec_for_first_k: Vec<f32> = Vec::new();
-
-    for (i, sub_vec) in y.iter().enumerate().take(k) {
-        let dist = minkowski_distance(&vec_for_first_k_X, sub_vec, 2);
-        println!("Distance from {}th point: {}", i, dist);
-        vec_for_first_k.push(dist);
-    }
-}
 
 fn main() {
-    let file_name = "D:/RUST/Rust_model/KNN/k-neigbor/src/fake_data.csv";
-    let reader = Reader::from_path(file_name);
-    let mut X: Vec<f32> = Vec::new();
-    let mut y: Vec<Vec<f32>> = Vec::new();
-
-    if let Err(e) = reader {
-        println!("Error reading file: {}", e);
-        return;
-    }
-    let mut my_reader = reader.unwrap();
-    for record in my_reader.records() {
-        let record = record.unwrap();
-        let x_value: f32 = record.get(0).unwrap().parse().unwrap();
-        let y_value_1: f32 = record.get(1).unwrap().parse().unwrap();
-        let y_value_2: f32 = record.get(2).unwrap().parse().unwrap();
-        X.push(x_value);
-        y.push(vec![y_value_1, y_value_2]);
-    }
-
-    println!("Input your k: ");
-    let mut key = String::new();
-    io::stdin()
-        .read_line(&mut key)
-        .expect("Failed to read line");
-    let k: usize = match key.trim().parse() {
-        Ok(num) => num,
-        Err(_) => {
-            println!("Input must be a positive integer.");
-            return;
+    let file_name = "D:/Rust/esay_knn_with_Rust/src/fake_data.csv";
+    let f_data = read_csv(file_name);
+    match f_data {
+        Ok(data)=>{
+            let mut x: Vec<Vec<f32>> = Vec::new();
+            let len = data.len();
+            let X: Vec<Vec<f32>> = data[0..(len - 1)].iter().map(|v| v.clone()).collect();
+            let Y: Vec<i32> = data[len - 1].iter().map(|v| *v as i32).collect();
+            let mut model = Model::init(X,Y);
+            let x: Vec<f32> = vec![0.9, 0.4];
+            println!("{}",model.k_neiborgh_nearest(3, &x));
+        },
+        Err(err)=>{
+            println!("{}",err)
         }
-    };
-
-    if k >= X.len() {
-        println!("k must be less than the number of data points.");
-        return;
     }
-
-    space_last_point(&X, &y, k);
 }
